@@ -1,0 +1,139 @@
+services:
+  # This service runs the postgres DB used by dagster for run storage, schedule storage,
+  # and event log storage.
+  dagster_postgresql:
+    image: postgres:11
+    container_name: dagster_postgresql
+    environment:
+      POSTGRES_USER: "postgres_user"
+      POSTGRES_PASSWORD: "postgres_password"
+      POSTGRES_DB: "postgres_db"
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - dagster_network
+
+  dagster_user_code_a:
+    build:
+      context: .
+      dockerfile: ./Dockerfile_user_code
+    restart: always
+    container_name: dagster_user_code_a
+    image: dagster_user_code_image_a
+    ports:
+      - "4000:4000"  # Unique port for gRPC service A
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+      REPO_FILE: "/opt/dagster/app/test_repo_1.py"
+      DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_A"
+    volumes:
+      - ../test_repo_1:/opt/dagster/app  # Volume mount for code A
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    networks:
+      - dagster_network
+
+  dagster_user_code_b:
+    build:
+      context: .
+      dockerfile: ./Dockerfile_user_code
+    restart: always
+    container_name: dagster_user_code_b
+    image: dagster_user_code_image_b
+    ports:
+      - "4001:4000"  # Unique port for gRPC service A
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+      REPO_FILE: "/opt/dagster/app/test_repo_2.py"
+      DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_B"
+    volumes:
+      - ../test_repo_2:/opt/dagster/app  # Volume mount for code B
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:4000/"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 5
+    networks:
+      - dagster_network
+
+  # This service runs dagster-webserver, which loads your user code from the user code container.
+  # Since our instance uses the QueuedRunCoordinator, any runs submitted from the webserver will be put on
+  # a queue and later dequeued and launched by dagster-daemon.
+  dagster_webserver:
+    build:
+      context: .
+      dockerfile: ./Dockerfile_dagster
+    entrypoint:
+      - dagster-webserver
+      - -h
+      - "0.0.0.0"
+      - -p
+      - "3000"
+      - -w
+      - workspace.yaml
+    container_name: dagster_webserver
+    restart: always
+    expose:
+      - "3000"
+    ports:
+      - "3000:3000"
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    volumes: # Make docker client accessible so we can terminate containers from the webserver
+      - /var/run/docker.sock:/var/run/docker.sock
+      - io_manager_storage:/tmp/io_manager_storage
+    networks:
+      - dagster_network
+    depends_on:
+      dagster_postgresql:
+        condition: service_started
+      dagster_user_code_a:
+        condition: service_started
+      dagster_user_code_b:
+        condition: service_started
+
+  # This service runs the dagster-daemon process, which is responsible for taking runs
+  # off of the queue and launching them, as well as creating runs from schedules or sensors.
+  dagster_daemon:
+    build:
+      context: .
+      dockerfile: ./Dockerfile_dagster
+    entrypoint:
+      - dagster-daemon
+      - run
+    container_name: dagster_daemon
+    restart: on-failure
+    environment:
+      DAGSTER_POSTGRES_USER: "postgres_user"
+      DAGSTER_POSTGRES_PASSWORD: "postgres_password"
+      DAGSTER_POSTGRES_DB: "postgres_db"
+    volumes: # Make docker client accessible so we can launch containers using host docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      - io_manager_storage:/tmp/io_manager_storage
+    networks:
+      - dagster_network
+    depends_on:
+      dagster_postgresql:
+        condition: service_started
+      dagster_user_code_a:
+        condition: service_started
+      dagster_user_code_b:
+        condition: service_started
+
+networks:
+  dagster_network:
+    name: dagster_network
+
+volumes: # Make docker client accessible so we can launch containers using host docker
+  postgres_data:
+  io_manager_storage:
+  docker.sock:

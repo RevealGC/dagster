@@ -1,0 +1,11 @@
+  load_from:
+  # Code Servers
+  # Each entry here corresponds to a container that exposes a gRPC server.
+  - grpc_server:
+      host: dagster_user_code_a
+      port: 4000
+      location_name: "dagster_user_code_a"
+  - grpc_server:
+      host: dagster_user_code_b
+      port: 4000
+      location_name: "dagster_user_code_b"

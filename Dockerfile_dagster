@@ -1,0 +1,18 @@
+FROM python:3.10-slim
+
+# Checkout and install dagster libraries needed to run the gRPC server by exposing
+# your code location to dagster-webserver and dagster-daemon, and loading the
+# DagsterInstance.
+
+RUN mkdir -p /opt/dagster/dagster_home /opt/dagster/app
+
+RUN pip install dagster dagster-graphql dagster-webserver dagster-postgres dagster-docker dagster-aws
+
+# Set $DAGSTER_HOME and copy dagster instance and workspace YAML there
+ENV DAGSTER_HOME=/opt/dagster/dagster_home/
+
+RUN mkdir -p $DAGSTER_HOME
+
+COPY dagster.yaml workspace.yaml $DAGSTER_HOME
+
+WORKDIR $DAGSTER_HOME
