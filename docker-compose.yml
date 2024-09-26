@@ -31,7 +31,7 @@ services:
       REPO_FILE: "/opt/dagster/app/test_repo_1.py"
       DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_A"
     volumes:
-      - ../test_repo_1:/opt/dagster/app  # Volume mount for code A
+      - ./repositories/test_repo_1:/opt/dagster/app  # Volume mount for code A
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:4000/"]
     #   interval: 30s
@@ -56,7 +56,7 @@ services:
       REPO_FILE: "/opt/dagster/app/test_repo_2.py"
       DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_B"
     volumes:
-      - ../test_repo_2:/opt/dagster/app  # Volume mount for code B
+      - ./repositories/test_repo_2:/opt/dagster/app  # Volume mount for code B
     # healthcheck:
     #   test: ["CMD", "curl", "-f", "http://localhost:4000/"]
     #   interval: 30s
