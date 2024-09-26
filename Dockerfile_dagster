@@ -1,3 +1,5 @@
+#! Dockerfile_dagster
+
 FROM python:3.10-slim
 
 # Checkout and install dagster libraries needed to run the gRPC server by exposing
