@@ -24,6 +24,8 @@ services:
     image: dagster_user_code_image_a
     ports:
       - "4000:4000"  # Unique port for gRPC service A
+    dns:
+      - 8.8.8.8
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -49,6 +51,8 @@ services:
     image: dagster_user_code_image_b
     ports:
       - "4001:4000"  # Unique port for gRPC service A
+    dns:
+      - 8.8.8.8
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
@@ -134,6 +138,7 @@ services:
 networks:
   dagster_network:
     name: dagster_network
+    driver: bridge
 
 volumes: # Make docker client accessible so we can launch containers using host docker
   postgres_data:
