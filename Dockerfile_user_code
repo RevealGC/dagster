@@ -3,23 +3,24 @@
 FROM python:3.10-slim
 
 # Checkout and install dagster libraries needed to run the gRPC server
-# exposing your repository to dagster-webserver and dagster-daemon, and to load the DagsterInstance
+# Install libraries without cache to reduce image size
+RUN pip install --no-cache-dir \
+    dagster==1.8.9 \
+    dagster-postgres==0.24.9 \
+    dagster-docker==0.24.9
 
-RUN pip install \
-    dagster \
-    dagster-postgres \
-    dagster-docker
-
-# Add repository code
-
+# Set the working directory
 WORKDIR /opt/dagster/app
 
+# Copy workspace configuration
 COPY workspace.yaml /opt/dagster/app/workspace.yaml
 
+# Set environment variables
 ENV PATH="/usr/local/bin:${PATH}"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PIP_ROOT_USER_ACTION=ignore
 
-# Run dagster gRPC server on port 4000
-
+# Expose the port for the gRPC server
 EXPOSE 4000
 
 # CMD allows this to be overridden from run launchers or executors that want
