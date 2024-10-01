@@ -13,7 +13,14 @@ RUN pip install --no-cache-dir \
 WORKDIR /opt/dagster/app
 
 # Copy workspace configuration
-COPY workspace.yaml /opt/dagster/app/workspace.yaml
+COPY workspace.yaml /opt/dagster/dagster_home/workspace.yaml
+
+# Copy the entrypoint script into the container
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# Debug: list files in the directory to verify entrypoint.sh was copied
+RUN ls -al /opt/dagster/app/
 
 # Set environment variables
 ENV PATH="/usr/local/bin:${PATH}"
@@ -25,4 +32,4 @@ EXPOSE 4000
 
 # CMD allows this to be overridden from run launchers or executors that want
 # to run other commands against your repository
-CMD sh -c "dagster api grpc -h 0.0.0.0 -p 4000 -f $REPO_FILE"
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

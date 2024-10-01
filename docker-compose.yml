@@ -31,7 +31,9 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
       REPO_FILE: "/opt/dagster/app/test_repo_1.py"
+      REQ_FILE: "/opt/dagster/app/requirements.txt"
       DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_A"
+      DAGSTER_HOME: "/opt/dagster/dagster_home"
     volumes:
       - ./repositories/test_repo_1:/opt/dagster/app  # Volume mount for code A
     healthcheck:
@@ -58,7 +60,9 @@ services:
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
       REPO_FILE: "/opt/dagster/app/test_repo_2.py"
+      REQ_FILE: "/opt/dagster/app/requirements.txt"
       DAGSTER_CURRENT_IMAGE: "dagster_user_code_image_B"
+      DAGSTER_HOME: "/opt/dagster/dagster_home"
     volumes:
       - ./repositories/test_repo_2:/opt/dagster/app  # Volume mount for code B
     networks:
@@ -72,13 +76,9 @@ services:
       context: .
       dockerfile: ./Dockerfile_dagster
     entrypoint:
-      - dagster-webserver
-      - -h
-      - "0.0.0.0"
-      - -p
-      - "3000"
-      - -w
-      - workspace.yaml
+      - sh
+      - -c
+      - "sleep 3 && dagster-webserver -h 0.0.0.0 -p 3000 -w workspace.yaml"
     container_name: dagster_webserver
     restart: always
     expose:
@@ -101,7 +101,7 @@ services:
         condition: service_started
       dagster_user_code_b:
         condition: service_started
-
+      
   # This service runs the dagster-daemon process, which is responsible for taking runs
   # off of the queue and launching them, as well as creating runs from schedules or sensors.
   dagster_daemon:
@@ -109,15 +109,16 @@ services:
       context: .
       dockerfile: ./Dockerfile_dagster
     entrypoint:
-      - dagster-daemon
-      - run
+      - sh
+      - -c
+      - "sleep 3 && dagster-daemon run"
     container_name: dagster_daemon
     restart: on-failure
     environment:
       DAGSTER_POSTGRES_USER: "postgres_user"
       DAGSTER_POSTGRES_PASSWORD: "postgres_password"
       DAGSTER_POSTGRES_DB: "postgres_db"
-    volumes: # Make docker client accessible so we can launch containers using host docker
+    volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - io_manager_storage:/tmp/io_manager_storage
     networks:
@@ -135,7 +136,7 @@ networks:
     name: dagster_network
     driver: bridge
 
-volumes: # Make docker client accessible so we can launch containers using host docker
+volumes:
   postgres_data:
   io_manager_storage:
   docker.sock:
